@@ -1,7 +1,3 @@
-#ifndef __USER_API_H__
-#define __USER_API_H__
-
-/* user mode syscall APIs */
-extern int gethid(unsigned int *hid);
-
-#endif /* __USER_API_H__ */
+version https://git-lfs.github.com/spec/v1
+oid sha256:b4b94ad0e4a6948142454a04df9d77ea9f811d1621847f52d50de5edfc5041a6
+size 143

@@ -1,14 +1,3 @@
-#ifndef __TYPES_H__
-#define __TYPES_H__
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int  uint32_t;
-typedef unsigned long long uint64_t;
-
-/*
- * RISCV32: register is 32bits width
- */ 
-typedef uint32_t reg_t;
-
-#endif /* __TYPES_H__ */
+version https://git-lfs.github.com/spec/v1
+oid sha256:78a81afdcc7fd325ba2eee282accb2c4af095baaa79d1eb69ee48d3ce1b3bac3
+size 270
