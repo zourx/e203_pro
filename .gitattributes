@@ -1,0 +1,10 @@
+*.bin filter=lfs diff=lfs merge=lfs -text
+*.v filter=lfs diff=lfs merge=lfs -text
+*.c filter=lfs diff=lfs merge=lfs -text
+*.S filter=lfs diff=lfs merge=lfs -text
+*.h filter=lfs diff=lfs merge=lfs -text
+*.cpp filter=lfs diff=lfs merge=lfs -text
+*.d filter=lfs diff=lfs merge=lfs -text
+*.o filter=lfs diff=lfs merge=lfs -text
+*.verilog filter=lfs diff=lfs merge=lfs -text
+*.a filter=lfs diff=lfs merge=lfs -text
