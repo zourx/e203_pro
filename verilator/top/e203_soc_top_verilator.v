@@ -8,6 +8,7 @@ module e203_soc_top_verilator(
   `define CPU_TOP u_e203_soc_top.u_e203_subsys_top.u_e203_subsys_main.u_e203_cpu_top
   `define EXU `CPU_TOP.u_e203_cpu.u_e203_core.u_e203_exu
   `define ITCM `CPU_TOP.u_e203_srams.u_e203_itcm_ram.u_e203_itcm_gnrl_ram.u_sirv_sim_ram
+  `define DTCM `CPU_TOP.u_e203_srams.u_e203_dtcm_ram.u_e203_dtcm_gnrl_ram.u_sirv_sim_ram
 
   `define PC_WRITE_TOHOST       `E203_PC_SIZE'h80000086
   `define PC_EXT_IRQ_BEFOR_MRET `E203_PC_SIZE'h800000a6
@@ -79,16 +80,28 @@ module e203_soc_top_verilator(
     end
   end
 
-    //reg[8*64:1] testcase;
-    reg[8*256:1] testcase;
-
+  // 這段的 itcmcase 是抓取檔名而非整個 data arry , 以便後續使用 readmem 語法獲取資料
+  reg[20*8-1:0] itcmcase;
   initial begin
     $display("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");  
-    if($value$plusargs("itcm_init=%s",testcase))begin
-      $display("itcm_init=%s",testcase);
+    if($value$plusargs("itcm_init=%s",itcmcase))begin
+      $display("itcm_init");
     end
     else begin
 	    $display("No itcm_init defined!");
+	    $finish;
+    end
+  end
+
+  // 這段的 dtcmcase 是抓取檔名而非整個 data arry , 以便後續使用 readmem 語法獲取資料
+  reg [20*8-1:0] dtcmcase;
+  initial begin
+    if($value$plusargs("dtcm_init=%s",dtcmcase))begin
+      $display("dtcm_init");
+      $display("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");  
+    end
+    else begin
+	    $display("No dtcm_init defined!");
 	    $finish;
     end
   end
@@ -101,7 +114,6 @@ module e203_soc_top_verilator(
         $display("~~~~~~~~~~~~~ Test Result Summary ~~~~~~~~~~~~~~~~~~~~~~");
         $display("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
         $display("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-        $display("~TESTCASE: %s ~~~~~~~~~~~~~", testcase);
         $display("~~~~~~~~~~~~~~Total cycle_count value: %d ~~~~~~~~~~~~~", cycle_count);
         $display("~~~~~~~~~~The valid Instruction Count: %d ~~~~~~~~~~~~~", valid_ir_cycle);
         $display("~~~~~The test ending reached at cycle: %d ~~~~~~~~~~~~~", pc_write_to_host_cycle);
@@ -134,21 +146,40 @@ module e203_soc_top_verilator(
   end
 
   // watchdog
-`ifdef JTAGDPI
-`else
-  always @(posedge clk) begin
-    if (cycle_count[20] == 1'b1) begin
-      $display("Time Out !!!");
-      $finish; 
-    end
-  end
-`endif
+// `ifdef JTAGDPI
+// `else
+//   always @(posedge clk) begin
+//     if (cycle_count[20] == 1'b1) begin
+//       $display("Time Out !!!");
+      // $finish; 
+//     end
+//   end
+// `endif
   
-  integer i;
-
-    reg [7:0] itcm_mem [0:(`E203_ITCM_RAM_DP*8)-1];
+  // $readmem[hb]("File", ArrayName, StartAddr, EndAddr)
+  integer j;
+    // dtcmcase 會放進 dtcm_mem , 而 for 迴圈依照 dtcm_dp 從 dtcm_mem 寫入 DTCM 中的 mem_r , 因此 dtcm_mem 比照 dp 規則
+    reg [7:0] dtcm_mem [(`E203_DTCM_RAM_DP*8)-1:0];
     initial begin
-      $readmemh(testcase, itcm_mem);
+      $readmemh(dtcmcase, dtcm_mem);
+
+      for (j=0;j<(`E203_DTCM_RAM_DP);j=j+1) begin
+          `DTCM.mem_r[j][00+7:00] = dtcm_mem[j*4+0];
+          `DTCM.mem_r[j][08+7:08] = dtcm_mem[j*4+1];
+          `DTCM.mem_r[j][16+7:16] = dtcm_mem[j*4+2];
+          `DTCM.mem_r[j][24+7:24] = dtcm_mem[j*4+3];
+      end
+        $display("DTCM 0x00: %h", `DTCM.mem_r[8'h00]);
+        $display("DTCM end");
+        $display("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");  
+    end 
+  
+  // $readmem[hb]("File", ArrayName, StartAddr, EndAddr)
+  integer i;
+    // itcmcase 會放進 itcm_mem , 而 for 迴圈依照 itcm_dp 從 itcm_mem 寫入 ITCM 中的 mem_r , 因此 itcm_mem 比照 dp 規則 
+    reg [7:0] itcm_mem [(`E203_ITCM_RAM_DP*8)-1:0];
+    initial begin
+      $readmemh(itcmcase, itcm_mem);
 
       for (i=0;i<(`E203_ITCM_RAM_DP);i=i+1) begin
           `ITCM.mem_r[i][00+7:00] = itcm_mem[i*8+0];
@@ -160,18 +191,8 @@ module e203_soc_top_verilator(
           `ITCM.mem_r[i][48+7:48] = itcm_mem[i*8+6];
           `ITCM.mem_r[i][56+7:56] = itcm_mem[i*8+7];
       end
-
         $display("ITCM 0x00: %h", `ITCM.mem_r[8'h00]);
-        $display("ITCM 0x01: %h", `ITCM.mem_r[8'h01]);
-        $display("ITCM 0x02: %h", `ITCM.mem_r[8'h02]);
-        $display("ITCM 0x03: %h", `ITCM.mem_r[8'h03]);
-        $display("ITCM 0x04: %h", `ITCM.mem_r[8'h04]);
-        $display("ITCM 0x05: %h", `ITCM.mem_r[8'h05]);
-        $display("ITCM 0x06: %h", `ITCM.mem_r[8'h06]);
-        $display("ITCM 0x07: %h", `ITCM.mem_r[8'h07]);
-        $display("ITCM 0x16: %h", `ITCM.mem_r[8'h16]);
-        $display("ITCM 0x20: %h", `ITCM.mem_r[8'h20]);
-
+        $display("ITCM end");
     end 
 
 `ifdef JTAGDPI
@@ -199,6 +220,7 @@ module e203_soc_top_verilator(
   wire jtag_TMS = 1'b0;
   wire jtag_TRSTn = 1'b1;
 `endif
+
 
 e203_soc_top u_e203_soc_top(
    
